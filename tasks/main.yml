@@ -1,0 +1,92 @@
+---
+
+- name: install python2-dnf for ansible
+  become: yes
+  raw: dnf -y install python2-dnf
+  changed_when: False
+  when: ansible_pkg_mgr == 'dnf'
+
+- name: update apt
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == 'Debian'
+
+- name: install unzip
+  package:
+    name: unzip
+    state: present
+
+- block:
+    - name: download hashicorp gpg key file from keybase
+      get_url:
+        url: https://keybase.io/hashicorp/key.asc
+        dest: "{{ packer_download_dir }}/hashicorp.asc"
+        validate_certs: "{{ packer_validate_certs }}"
+
+    - name: install gnupg package
+      become: yes
+      package:
+        name: gnupg
+        state: present
+
+    - name: import hashicorp gpg key
+      command: gpg --import "{{ packer_download_dir }}/hashicorp.asc"
+      changed_when: no
+
+    - name: download packer checksum signature file
+      get_url:
+        url: "{{ packer_signature_url }}"
+        dest: "{{ packer_download_dir }}/{{ packer_signature_file }}"
+        validate_certs: "{{ packer_validate_certs }}"
+        force: yes
+  when: packer_verify_checksum_signature
+
+- name: Get packer checksum file
+  get_url:
+    url: "{{ packer_checksum_file_url }}"
+    dest: "{{ packer_download_dir }}"
+    validate_certs: "{{ packer_validate_certs }}"
+
+- name: verify checksum file
+  command: gpg --batch --verify {{ packer_download_dir }}/{{ packer_signature_file }} {{ packer_download_dir }}/{{ packer_checksum_file }}
+  changed_when: no
+  register: gpg_check
+  when: packer_verify_checksum_signature
+  failed_when: gpg_check.rc == 1
+  tags: gpg_check
+
+- name: Get checksum of packer zip
+  shell: "grep {{ packer_zip }} {{ packer_download_dir }}/{{ packer_checksum_file }}"
+  register: chksum
+  changed_when: False
+  tags:
+    - skip_ansible_lint
+
+- name: download packer zip
+  get_url:
+    url: "{{ packer_zip_url }}"
+    dest: "{{ packer_download_dir }}/{{ packer_zip }}"
+    checksum: "sha256:{{ chksum.stdout.split(' ')|first }}"
+    validate_certs: "{{ packer_validate_certs }}"
+
+- name: create packer binary directory
+  file:
+    state: directory
+    path: "{{ packer_bin_dir }}/packer-{{ packer_version }}"
+    owner: 0
+    group: 0
+    recurse: yes
+
+- name: extract packer zip
+  unarchive:
+    src: "{{ packer_download_dir }}/{{ packer_zip }}"
+    dest: "{{ packer_bin_dir }}/packer-{{ packer_version }}"
+    copy: no
+    creates: "{{ packer_bin_dir }}/packer-{{ packer_version }}/packer"
+
+- name: symlink packer binary
+  file:
+    state: link
+    src: "{{ packer_bin_dir }}/packer-{{ packer_version }}/packer"
+    dest: "{{ packer_bin_dir }}/packer"

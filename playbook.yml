@@ -1,0 +1,7 @@
+---
+
+- hosts: all
+  any_errors_fatal: true
+  roles:
+    - role: kostyrev.packer
+      packer_validate_certs: "{{ false if ansible_virtualization_type == 'docker' else true }}"

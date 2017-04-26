@@ -1,0 +1,19 @@
+---
+
+driver:
+  name: docker
+
+docker:
+  containers:
+
+    - name: ubuntu-packer
+      image: ubuntu
+      image_version: latest
+
+    - name: fedora-packer
+      image: fedora
+      image_version: latest
+      command: /bin/bash
+
+verifier:
+  name: testinfra
