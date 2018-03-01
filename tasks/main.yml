@@ -17,6 +17,12 @@
     name: unzip
     state: present
 
+# See https://github.com/cracklib/cracklib/issues/7
+- name: remove default packer symlink pointing to /usr/sbin/cracklib-packer
+  file:
+    path: /usr/sbin/packer
+    state: absent
+
 - block:
     - name: download hashicorp gpg key file from keybase
       get_url:
