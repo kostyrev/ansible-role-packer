@@ -8,6 +8,6 @@ packer_validate_certs: true
 packer_verify_checksum_signature: true
 packer_signature_file: "{{ packer_checksum_file }}.sig"
 packer_signature_url: "https://releases.hashicorp.com/packer/{{ packer_version }}/{{ packer_signature_file }}"
-packer_version: 1.0.0
+packer_version: 1.2.1
 packer_zip: packer_{{ packer_version }}_linux_amd64.zip
 packer_zip_url: https://releases.hashicorp.com/packer/{{ packer_version }}/{{ packer_zip }}
